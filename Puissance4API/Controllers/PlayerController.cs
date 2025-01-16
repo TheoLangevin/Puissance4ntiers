@@ -1,6 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Puissance4Model.Data;
 using Puissance4Model.Models;
+using Puissance4API.DTO;
+
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Puissance4API.Controllers;
 
@@ -14,59 +20,79 @@ public class PlayersController : ControllerBase
     {
         _context = context;
     }
-    
 
-    [HttpPost("authenticate")]
-    public IActionResult Authenticate([FromBody] Player player)
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(PlayerDTO playerDto)
     {
-        if (player == null || string.IsNullOrEmpty(player.Login) || string.IsNullOrEmpty(player.Password))
+        if (_context.Players.Any(p => p.Login == playerDto.Login))
         {
-            return BadRequest("Login and password are required.");
+            return Conflict("Login already exists.");
         }
 
-        var existingPlayer = _context.Players.FirstOrDefault(p => p.Login == player.Login && p.Password == player.Password);
-        if (existingPlayer == null)
+        var player = new Player
         {
-            return Unauthorized("Invalid login or password.");
-        }
+            Login = playerDto.Login,
+            Password = BCrypt.Net.BCrypt.HashPassword(playerDto.Password)
+        };
 
-        // For future extensibility: Add a token or session management
-        return Ok(new
-        {
-            Id = existingPlayer.Id,
-            Login = existingPlayer.Login,
-            Message = "Authentication successful."
-        });
+        _context.Players.Add(player);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetPlayer), new { id = player.Id }, player);
     }
 
-    // Endpoint to get all players
-    [HttpGet]
-    public IActionResult GetAllPlayers()
-    {
-        var players = _context.Players.Select(p => new
-        {
-            p.Id,
-            p.Login
-        }).ToList();
-
-        return Ok(players);
-    }
-
-    // Endpoint to retrieve a player by ID
     [HttpGet("{id}")]
-    public IActionResult GetPlayerById(int id)
+    public async Task<IActionResult> GetPlayer(int id)
     {
-        var player = _context.Players.FirstOrDefault(p => p.Id == id);
+        var player = await _context.Players.FindAsync(id);
         if (player == null)
         {
-            return NotFound("Player not found.");
+            return NotFound();
         }
+
+        return Ok(player);
+    }
+
+    [HttpGet]
+    public IActionResult GetPlayers()
+    {
+        return Ok(_context.Players.ToList());
+    }
+
+    [HttpPost("login")]
+    public IActionResult Login([FromBody] PlayerDTO loginData)
+    {
+        var player = _context.Players.SingleOrDefault(p => p.Login == loginData.Login);
+        if (player == null || !BCrypt.Net.BCrypt.Verify(loginData.Password, player.Password))
+        {
+            return Unauthorized(new { Message = "Invalid login or password." });
+        }
+
+        // Générer un token JWT
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.ASCII.GetBytes("MotDePasseVraimentCacher"); // Clé secrète pour signer le token
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new[]
+            {
+            new Claim(ClaimTypes.Name, player.Login),
+            new Claim("PlayerId", player.Id.ToString())
+        }),
+            Expires = DateTime.UtcNow.AddHours(1), // Durée de validité du token
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var token = tokenHandler.CreateToken(tokenDescriptor);
 
         return Ok(new
         {
-            player.Id,
-            player.Login
+            Token = tokenHandler.WriteToken(token),
+            Player = new PlayerResponseDTO
+            {
+                Id = player.Id,
+                Login = player.Login
+            }
         });
     }
-
 }

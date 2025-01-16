@@ -8,6 +8,11 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Puissance4Model\Puissance4Model.csproj" />
+      <ProjectReference Include="..\Puissance4API\Puissance4API.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
     </ItemGroup>
 
 </Project>

@@ -12,9 +12,9 @@
 else
 {
     <div class="game-info">
-        <p>Status: @game.Status</p>
-        <p>Host: @game.Host.Login</p>
-        @if (game.Guest != null)
+    <p>Status: @game.Status</p>
+    <p>Host: @game.Host.Login</p>
+    @if (game.Guest != null)
         {
             <p>Guest: @game.Guest.Login</p>
         }
@@ -65,7 +65,8 @@ else
 
     private Game game;
 
-    private void test(){
+    private void test()
+    {
         Console.WriteLine("test");
         alert("test");
     }
@@ -80,21 +81,21 @@ else
     {
         // Crée un jeu de test local
         game = new Game
-        {
-            Id = GameId,
-            Status = "InProgress",
-            Host = new Player { Id = 1, Login = "HostPlayer" },
-            Guest = new Player { Id = 2, Login = "GuestPlayer" },
-            Grid = new Grid
             {
-                Cells = Enumerable.Range(0, 6 * 7).Select(i => new Cell
+                Id = GameId,
+                Status = "InProgress",
+                Host = new Player { Id = 1, Login = "HostPlayer" },
+                Guest = new Player { Id = 2, Login = "GuestPlayer" },
+                Grid = new Grid
                 {
-                    Row = i / 7,
-                    Column = i % 7,
-                    Token = null
-                }).ToList()
-            }
-        };
+                    Cells = Enumerable.Range(0, 6 * 7).Select(i => new Cell
+                    {
+                        Row = i / 7,
+                        Column = i % 7,
+                        Token = null
+                    }).ToList()
+                }
+            };
     }
 
     private void PlayTurn(int column)

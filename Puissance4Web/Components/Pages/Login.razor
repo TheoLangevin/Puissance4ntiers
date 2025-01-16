@@ -1,69 +1,59 @@
 ﻿@page "/login"
-@using System.ComponentModel.DataAnnotations
-@inject NavigationManager NavigationManager
-@inject HttpClient HttpClient
 
-<h3>Connexion</h3>
+@using Puissance4API.DTO
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
-<div class="login-container">
-    <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
+<h3>Login</h3>
 
-        <div class="form-group">
-            <label for="login">Nom d'utilisateur</label>
-            <InputText id="login" class="form-control" @bind-Value="loginModel.Login" />
-        </div>
+<EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="loginForm">
+    <div>
+        <label>Login:</label>
+        <InputText @bind-Value="loginModel.Login" />
+    </div>
+    <div>
+        <label>Password:</label>
+        <InputText @bind-Value="loginModel.Password" Type="password" />
+    </div>
+    <button type="submit">Login</button>
+</EditForm>
 
-        <div class="form-group">
-            <label for="password">Mot de passe</label>
-            <InputText id="password" type="password" class="form-control" @bind-Value="loginModel.Password" />
-        </div>
-
-        <button type="submit" class="btn btn-primary">Se connecter</button>
-    </EditForm>
-
-    @if (errorMessage != null)
-    {
-        <div class="alert alert-danger mt-3">
-            @errorMessage
-        </div>
-    }
-</div>
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <p style="color:red">@ErrorMessage</p>
+}
 
 @code {
-    private LoginModel loginModel = new LoginModel();
-    private string? errorMessage;
+    private PlayerDTO loginModel = new();
+    private string ErrorMessage;
 
     private async Task HandleLogin()
     {
         try
         {
-            var response = await HttpClient.PostAsJsonAsync("api/auth/login", loginModel);
-
+            var response = await Http.PostAsJsonAsync("api/players/login", loginModel);
             if (response.IsSuccessStatusCode)
             {
-                // Navigation vers la page des parties en cas de succès
-                NavigationManager.NavigateTo("/games");
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                // Sauvegarder le token dans le localStorage
+                await LocalStorage.SetItemAsync("authToken", result.Token);
+                Navigation.NavigateTo("/");
             }
             else
             {
-                // Afficher un message d'erreur
-                errorMessage = "Nom d'utilisateur ou mot de passe incorrect.";
+                ErrorMessage = "Invalid login or password.";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = "Une erreur est survenue lors de la connexion. Veuillez réessayer.";
+            ErrorMessage = $"An error occurred: {ex.Message}";
         }
     }
 
-    private class LoginModel
+    public class LoginResponse
     {
-        [Required(ErrorMessage = "Le nom d'utilisateur est requis.")]
-        public string Login { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Le mot de passe est requis.")]
-        public string Password { get; set; } = string.Empty;
+        public string Token { get; set; }
+        public PlayerResponseDTO Player { get; set; }
     }
 }
