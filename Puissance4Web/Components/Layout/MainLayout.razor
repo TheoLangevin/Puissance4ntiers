@@ -1,0 +1,45 @@
+﻿@inherits LayoutComponentBase
+
+<div class="main-container">
+    <header>
+        <h1>Puissance 4</h1>
+        <nav>
+            <a href="/">Accueil</a>
+            <a href="/games">Liste des parties</a>
+            <a href="/create-game">Créer une partie</a>
+        </nav>
+    </header>
+    <main>
+        @Body
+    </main>
+</div>
+
+<style>
+    .main-container {
+        font-family: Arial, sans-serif;
+        margin: 0 auto;
+        max-width: 800px;
+    }
+
+    header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid #ccc;
+    }
+
+    nav a {
+        margin: 0 10px;
+        text-decoration: none;
+        color: blue;
+    }
+
+    nav a:hover {
+        text-decoration: underline;
+    }
+
+    main {
+        padding: 1rem;
+    }
+</style>

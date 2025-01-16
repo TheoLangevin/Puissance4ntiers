@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Puissance4Web", "Puissance4Web\Puissance4Web.csproj", "{7B609330-0050-4CB9-B3C1-3EB238C79F09}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Puissance4API", "Puissance4API\Puissance4API.csproj", "{C6F86811-5007-45F8-902B-F020B831C8E3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Puissance4Model", "Puissance4Model\Puissance4Model.csproj", "{75A362D6-B135-4229-B909-42F7DAA3C5ED}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7B609330-0050-4CB9-B3C1-3EB238C79F09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B609330-0050-4CB9-B3C1-3EB238C79F09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B609330-0050-4CB9-B3C1-3EB238C79F09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B609330-0050-4CB9-B3C1-3EB238C79F09}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6F86811-5007-45F8-902B-F020B831C8E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6F86811-5007-45F8-902B-F020B831C8E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6F86811-5007-45F8-902B-F020B831C8E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6F86811-5007-45F8-902B-F020B831C8E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75A362D6-B135-4229-B909-42F7DAA3C5ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75A362D6-B135-4229-B909-42F7DAA3C5ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75A362D6-B135-4229-B909-42F7DAA3C5ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75A362D6-B135-4229-B909-42F7DAA3C5ED}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
