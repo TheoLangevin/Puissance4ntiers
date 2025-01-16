@@ -1,0 +1,191 @@
+﻿@page "/game/{GameId:int}"
+@using Puissance4Model.Models
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<h3>Game Details</h3>
+
+@if (game == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="game-info">
+        <p>Status: @game.Status</p>
+        <p>Host: @game.Host.Login</p>
+        @if (game.Guest != null)
+        {
+            <p>Guest: @game.Guest.Login</p>
+        }
+        else
+        {
+            <p>Waiting for a guest...</p>
+        }
+
+        <!-- Ajouter des boutons pour chaque colonne -->
+        <div class="column-buttons">
+            @for (int col = 0; col < 7; col++)
+            {
+                <button class="column-button" @onclick="() => test()">Play in column @col</button>
+            }
+        </div>
+
+        <div class="game-board">
+            <div class="grid">
+                @for (int row = 0; row < 6; row++)
+                {
+                    <div class="row">
+                        @for (int col = 0; col < 7; col++)
+                        {
+                            var cell = game.Grid.Cells.FirstOrDefault(c => c.Row == row && c.Column == col);
+                            <div class="cell">
+                                @if (cell?.Token != null)
+                                {
+                                    <span class="token" style="background-color: @cell.Token.Color"></span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="actions">
+            @if (game.Status == "InProgress")
+            {
+                <button @onclick="LeaveGame">Leave Game</button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int GameId { get; set; }
+
+    private Game game;
+
+    private void test(){
+        Console.WriteLine("test");
+        alert("test");
+    }
+
+    protected override void OnInitialized()
+    {
+        // Initialisation du jeu local pour les tests sans base de données.
+        InitializeGame();
+    }
+
+    private void InitializeGame()
+    {
+        // Crée un jeu de test local
+        game = new Game
+        {
+            Id = GameId,
+            Status = "InProgress",
+            Host = new Player { Id = 1, Login = "HostPlayer" },
+            Guest = new Player { Id = 2, Login = "GuestPlayer" },
+            Grid = new Grid
+            {
+                Cells = Enumerable.Range(0, 6 * 7).Select(i => new Cell
+                {
+                    Row = i / 7,
+                    Column = i % 7,
+                    Token = null
+                }).ToList()
+            }
+        };
+    }
+
+    private void PlayTurn(int column)
+    {
+        // Vérification de l'appel de la fonction PlayTurn
+        Console.WriteLine($"PlayTurn called for column: {column}");
+        alert($"PlayTurn called for column: {column}"); // Déclenche un message d'alerte pour vérifier l'appel.
+
+        if (game.Status != "InProgress")
+        {
+            return;
+        }
+
+        var currentPlayer = game.Host.Id == 1 ? game.Host : game.Guest;
+        var tokenColor = currentPlayer == game.Host ? "Red" : "Yellow";
+
+        // Trouver la première cellule vide dans la colonne
+        var row = GetAvailableRow(column);
+
+        if (row == -1) // Si la colonne est pleine
+        {
+            Console.WriteLine("Column is full");
+            return;
+        }
+
+        // Placer le jeton dans la cellule correspondante
+        var cell = game.Grid.Cells.FirstOrDefault(c => c.Row == row && c.Column == column);
+        if (cell != null)
+        {
+            cell.Token = new Token { Color = tokenColor };
+            Console.WriteLine($"Placed token {tokenColor} at row: {row}, column: {column}");
+            CheckWinCondition(currentPlayer);
+            SwitchTurn();
+        }
+    }
+
+    private int GetAvailableRow(int column)
+    {
+        // Trouver la première cellule vide dans la colonne
+        for (int row = 5; row >= 0; row--) // Commencer par la ligne la plus basse (ligne 5)
+        {
+            var cell = game.Grid.Cells.FirstOrDefault(c => c.Row == row && c.Column == column);
+            if (cell != null && cell.Token == null) // Cellule vide
+            {
+                return row;
+            }
+        }
+        return -1; // Si la colonne est pleine
+    }
+
+    private void SwitchTurn()
+    {
+        // Change de joueur (si c'est l'hôte, c'est au tour du guest, et vice versa)
+        if (game.Status == "InProgress")
+        {
+            if (game.Host.Id == 1)
+            {
+                game.Status = "Guest's Turn";
+            }
+            else
+            {
+                game.Status = "Host's Turn";
+            }
+        }
+    }
+
+    private void CheckWinCondition(Player currentPlayer)
+    {
+        // Vérification de la condition de victoire (par exemple, ligne, colonne ou diagonale)
+        bool isWinner = game.Grid.CheckWinCondition(new Token { Color = currentPlayer.Id == 1 ? "Red" : "Yellow" });
+
+        if (isWinner)
+        {
+            game.Status = $"{currentPlayer.Login} wins!";
+        }
+        else if (game.Grid.IsFull())
+        {
+            game.Status = "It's a draw!";
+        }
+    }
+
+    private void LeaveGame()
+    {
+        // Vous pouvez ajouter une logique pour quitter le jeu
+        // Pour cette démo, on redirige simplement vers la liste des jeux
+        NavigationManager.NavigateTo("/games");
+    }
+
+    // Cette fonction déclenche une alerte Javascript.
+    private async Task alert(string message)
+    {
+        await JSRuntime.InvokeVoidAsync("alert", message);
+    }
+}
