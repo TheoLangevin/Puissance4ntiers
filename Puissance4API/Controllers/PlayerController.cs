@@ -24,21 +24,46 @@ public class PlayersController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(PlayerDTO playerDto)
     {
+        // Vérifier si le login existe déjà
         if (_context.Players.Any(p => p.Login == playerDto.Login))
         {
             return Conflict("Login already exists.");
         }
 
+        // Vérifier les contraintes du mot de passe
+        if (!IsPasswordSecure(playerDto.Password))
+        {
+            return BadRequest("Password must be at least 8 characters long, contain one uppercase letter, one lowercase letter, one number, and one special character.");
+        }
+
+        // Créer un nouvel utilisateur avec un mot de passe hashé
         var player = new Player
         {
             Login = playerDto.Login,
             Password = BCrypt.Net.BCrypt.HashPassword(playerDto.Password)
         };
 
+        // Ajouter le joueur dans la base de données
         _context.Players.Add(player);
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetPlayer), new { id = player.Id }, player);
+    }
+
+    // Méthode pour vérifier les contraintes du mot de passe
+    private bool IsPasswordSecure(string password)
+    {
+        if (string.IsNullOrEmpty(password))
+        {
+            return false;
+        }
+
+        // Vérifier les règles de sécurité
+        return password.Length >= 8 &&
+               password.Any(char.IsUpper) &&
+               password.Any(char.IsLower) &&
+               password.Any(char.IsDigit) &&
+               password.Any(ch => !char.IsLetterOrDigit(ch));
     }
 
     [HttpGet("{id}")]

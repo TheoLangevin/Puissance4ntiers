@@ -2,9 +2,6 @@
 @using Puissance4Web.Components.Layout
 
 <div class="page">
-    <div class="navbar">
-        <NavMenu />
-    </div>
 </div>
 <div class="main-container">
     <header>
@@ -14,6 +11,10 @@
             <a href="/games">Liste des parties</a>
             <a href="/create-game">Créer une partie</a>
         </nav>
+        <button class="btn btn-outline-danger" @onclick="Logout">
+            <i class="bi bi-box-arrow-right"></i> Logout
+        </button>
+
     </header>
     <main>
         @Body
@@ -49,3 +50,27 @@
         padding: 1rem;
     }
 </style>
+
+@code {
+    [Inject] private Blazored.LocalStorage.ILocalStorageService LocalStorage { get; set; }
+    [Inject] private NavigationManager Navigation { get; set; }
+
+    private bool isReady;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isReady = true; // Composant prêt pour les appels interop JS
+            StateHasChanged();
+        }
+    }
+
+    private async Task Logout()
+    {
+        if (!isReady) return;
+
+        await LocalStorage.RemoveItemAsync("authToken");
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

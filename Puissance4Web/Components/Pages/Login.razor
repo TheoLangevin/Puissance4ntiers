@@ -6,19 +6,36 @@
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @rendermode InteractiveServer
 
-<h3>Login</h3>
+<div class="container mt-5">
+    <div class="text-center mb-4">
+        <h1 class="display-4">Connexion</h1>
+        <p class="lead">Connectez-vous pour accéder à votre compte et commencer à jouer.</p>
+    </div>
 
-<EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="loginForm">
-    <div>
-        <label>Login:</label>
-        <InputText @bind-Value="loginModel.Login" />
-    </div>
-    <div>
-        <label>Password:</label>
-        <InputText @bind-Value="loginModel.Password" Type="password" />
-    </div>
-    <button type="submit">Login</button>
-</EditForm>
+    <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+        <div class="mb-3">
+            <label for="login" class="form-label">Nom d'utilisateur</label>
+            <InputText id="login" @bind-Value="loginModel.Login" class="form-control" placeholder="Entrez votre nom d'utilisateur" />
+            <ValidationMessage For="() => loginModel.Login" />
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Mot de passe</label>
+            <InputText id="password" @bind-Value="loginModel.Password" class="form-control" placeholder="Entrez votre mot de passe" Type="password" />
+            <ValidationMessage For="() => loginModel.Password" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg w-100">Se connecter</button>
+        <div class="text-center mt-3">
+            <a href="/register">Pas encore de compte?</a>
+        </div>
+    </EditForm>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger mt-3" role="alert">
+            @ErrorMessage
+        </div>
+    }
+</div>
 
 @if (!string.IsNullOrEmpty(ErrorMessage))
 {
@@ -39,7 +56,7 @@
                 {
                     Http.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                    Navigation.NavigateTo("/console-demo"); // Rediriger si déjà connecté
+                    Navigation.NavigateTo("/"); // Rediriger si déjà connecté
                 }
             }
             catch (Exception ex)
@@ -61,7 +78,7 @@
                 await LocalStorage.SetItemAsync("authToken", result.Token);
                 Http.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", result.Token);
-                Navigation.NavigateTo("/console-demo");
+                Navigation.NavigateTo("/");
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {

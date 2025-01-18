@@ -1,4 +1,4 @@
-using Puissance4Web;
+using Puissance4Web.Components;
 using Blazored.LocalStorage;
 
 var builder = WebApplication.CreateBuilder(args);

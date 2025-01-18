@@ -1,0 +1,63 @@
+@page "/"
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject NavigationManager Navigation
+
+<div class="container mt-5">
+    <div class="text-center mb-4">
+        <h1 class="display-4">Bienvenue sur Puissance 4</h1>
+        <p class="lead">Connectez-vous pour jouer ou créez un compte si vous êtes nouveau.</p>
+    </div>
+
+    @if (IsLoggedIn)
+    {
+        <div class="text-center">
+            <p class="lead">Vous êtes connecté !</p>
+            <div class="d-flex justify-content-center">
+                <a href="/games" class="btn btn-primary btn-lg mx-2">
+                    <i class="bi bi-collection-play"></i> Voir les parties
+                </a>
+                <a href="/create-game" class="btn btn-success btn-lg mx-2">
+                    <i class="bi bi-plus-circle"></i> Créer une partie
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center">
+            <p class="lead">Connectez-vous pour commencer !</p>
+            <div class="d-flex justify-content-center">
+                <a href="/login" class="btn btn-primary btn-lg mx-2">
+                    <i class="bi bi-box-arrow-in-right"></i> Login
+                </a>
+                <a href="/register" class="btn btn-secondary btn-lg mx-2">
+                    <i class="bi bi-person-plus"></i> Register
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool IsLoggedIn = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Vérifie si un token est présent
+                var token = await LocalStorage.GetItemAsync<string>("authToken");
+                IsLoggedIn = !string.IsNullOrEmpty(token);
+
+                // Forcer le re-rendu une fois les données chargées
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erreur lors de l'accès au LocalStorage : {ex.Message}");
+            }
+        }
+    }
+}
