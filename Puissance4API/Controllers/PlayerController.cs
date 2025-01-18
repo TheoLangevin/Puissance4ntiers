@@ -7,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Puissance4API.Services;
 
 namespace Puissance4API.Controllers;
 
@@ -15,10 +16,12 @@ namespace Puissance4API.Controllers;
 public class PlayersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly JwtTokenService _jwtTokenService;
 
-    public PlayersController(ApplicationDbContext context)
+    public PlayersController(ApplicationDbContext context, JwtTokenService jwtTokenService)
     {
         _context = context;
+        _jwtTokenService = jwtTokenService;
     }
 
     [HttpPost("register")]
@@ -93,26 +96,12 @@ public class PlayersController : ControllerBase
             return Unauthorized(new { Message = "Invalid login or password." });
         }
 
-        // Générer un token JWT
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes("MotDePasseVraimentCacher"); // Clé secrète pour signer le token
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new[]
-            {
-            new Claim(ClaimTypes.Name, player.Login),
-            new Claim("PlayerId", player.Id.ToString())
-        }),
-            Expires = DateTime.UtcNow.AddHours(1), // Durée de validité du token
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
-
-        var token = tokenHandler.CreateToken(tokenDescriptor);
+        // Générer le token JWT
+        var token = _jwtTokenService.GenerateJwtToken(player);
 
         return Ok(new
         {
-            Token = tokenHandler.WriteToken(token),
+            Token = token,
             Player = new PlayerResponseDTO
             {
                 Id = player.Id,

@@ -1,21 +1,20 @@
-﻿namespace Puissance4Model.Models;
+﻿using Puissance4Model.Models;
 
+public class Cell
+{
+    public int Id { get; set; }
+    public int Row { get; set; }
+    public int Column { get; set; }
+    public Token? Token { get; set; }
 
-    public class Cell
+    // Nouvelle clé étrangère
+    public int GridId { get; set; }
+
+    public Cell() { }
+
+    public Cell(int row, int column)
     {
-        
-        public int Id { get; set; }
-        public int Row { get; set; }
-        public int Column { get; set; }
-        public Token Token { get; set; }
-
-        public Cell() { }
-
-        public Cell(int Row, int Column)
-        {
-            this.Row = Row;
-            this.Column = Column;
-            Token = null;
-        }
+        Row = row;
+        Column = column;
     }
-
+}

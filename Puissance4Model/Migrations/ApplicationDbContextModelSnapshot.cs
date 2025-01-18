@@ -16,21 +16,27 @@ namespace Puissance4Model.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.1");
 
-            modelBuilder.Entity("Puissance4Model.Models.Cell", b =>
+            modelBuilder.Entity("Cell", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Column")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("GridId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Row")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("TokenId")
+                    b.Property<int?>("TokenId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GridId");
 
                     b.HasIndex("TokenId");
 
@@ -40,6 +46,7 @@ namespace Puissance4Model.Migrations
             modelBuilder.Entity("Puissance4Model.Models.Game", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("GuestId")
@@ -70,10 +77,16 @@ namespace Puissance4Model.Migrations
                     b.Property<int>("Columns")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("GameId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Rows")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GameId")
+                        .IsUnique();
 
                     b.ToTable("Grid");
                 });
@@ -117,19 +130,17 @@ namespace Puissance4Model.Migrations
                     b.ToTable("Token");
                 });
 
-            modelBuilder.Entity("Puissance4Model.Models.Cell", b =>
+            modelBuilder.Entity("Cell", b =>
                 {
                     b.HasOne("Puissance4Model.Models.Grid", null)
                         .WithMany("Cells")
-                        .HasForeignKey("Id")
+                        .HasForeignKey("GridId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Puissance4Model.Models.Token", "Token")
                         .WithMany()
-                        .HasForeignKey("TokenId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("TokenId");
 
                     b.Navigation("Token");
                 });
@@ -147,17 +158,24 @@ namespace Puissance4Model.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Puissance4Model.Models.Grid", "Grid")
-                        .WithOne()
-                        .HasForeignKey("Puissance4Model.Models.Game", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Grid");
-
                     b.Navigation("Guest");
 
                     b.Navigation("Host");
+                });
+
+            modelBuilder.Entity("Puissance4Model.Models.Grid", b =>
+                {
+                    b.HasOne("Puissance4Model.Models.Game", null)
+                        .WithOne("Grid")
+                        .HasForeignKey("Puissance4Model.Models.Grid", "GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Puissance4Model.Models.Game", b =>
+                {
+                    b.Navigation("Grid")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Puissance4Model.Models.Grid", b =>

@@ -1,0 +1,164 @@
+@page "/play/{GameId:int}"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@using Puissance4Model.Models
+@using static Puissance4API.Controllers.GamesController
+
+<div class="container text-center mt-5">
+    <h1>Puissance 4</h1>
+    <p>
+        @if (IsGameOver)
+        {
+            <b>@(Winner is null ? "Match nul !" : $"{Winner} a gagné !")</b>
+        }
+        else
+        {
+            <b>Tour actuel : <b>@CurrentPlayer</b></b>
+        }
+    </p>
+
+    <!-- Plateau de jeu -->
+    <div class="game-board">
+        @if (Game != null && Game.Grid != null)
+        {
+            @for (int row = Game.Grid.Rows - 1; row >= 0; row--)
+            {
+                <div class="row">
+                    @for (int col = 0; col < Game.Grid.Columns; col++)
+                    {
+                        var cell = Game.Grid.Cells.FirstOrDefault(c => c.Row == row && c.Column == col);
+                        var color = cell?.Token?.Color ?? "white";
+                        <div class="cell" style="background-color: @(color);" @onclick="() => DropToken(col)"></div>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <p>Chargement du plateau...</p>
+        }
+    </div>
+
+    @if (IsGameOver)
+    {
+        <button class="btn btn-primary mt-3" @onclick="ResetGame">Recommencer</button>
+    }
+</div>
+
+<style>
+    .game-board {
+        display: grid;
+        grid-template-rows: repeat(
+    @(Game?.Grid?.Rows
+        ?? 6), 1fr);
+        grid-gap: 5px;
+        width: 350px;
+        margin: 20px auto;
+        background-color: #000;
+        border: 3px solid #000;
+    }
+
+    .row {
+        display: grid;
+        grid-template-columns: repeat(
+    @(Game?.Grid?.Columns
+        ?? 7), 1fr);
+    }
+
+    .cell {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 1px solid #ccc;
+        cursor: pointer;
+    }
+
+    .cell:hover {
+        background-color: lightgray;
+    }
+</style>
+
+@code {
+    [Parameter] public int GameId { get; set; }
+
+    private Game? Game;
+    private string CurrentPlayer = "Rouge";
+    private bool IsGameOver = false;
+    private string? Winner = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGame();
+    }
+
+    private async Task LoadGame()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/Games/{GameId}");
+            if (response.IsSuccessStatusCode)
+            {
+                Game = await response.Content.ReadFromJsonAsync<Game>();
+                CurrentPlayer = Game?.Status == "Guest's Turn" ? "Jaune" : "Rouge";
+                IsGameOver = Game?.Status == "Finished";
+            }
+            else
+            {
+                Navigation.NavigateTo("/"); // Rediriger en cas d'erreur
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur lors du chargement du jeu : {ex.Message}");
+            Navigation.NavigateTo("/"); // Rediriger en cas d'erreur
+        }
+    }
+
+    private async Task DropToken(int column)
+    {
+        if (IsGameOver || Game == null || Game.Status != "InProgress")
+        {
+            return;
+        }
+
+        var playerId = Game.Status == "Host's Turn" ? Game.HostId : Game.GuestId;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/Games/play", new PlayTurnRequest
+                {
+                    GameId = Game.Id,
+                    PlayerId = playerId ?? throw new InvalidOperationException("PlayerId cannot be null"),
+                    Column = column
+                });
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<PlayTurnResult>();
+                Winner = result?.Winner;
+                IsGameOver = result?.IsGameOver ?? false;
+
+                await LoadGame(); // Recharger l'état du jeu
+            }
+            else
+            {
+                Console.WriteLine($"Erreur lors du placement du jeton : {await response.Content.ReadAsStringAsync()}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erreur : {ex.Message}");
+        }
+    }
+
+    private void ResetGame()
+    {
+        Navigation.NavigateTo($"/play/{GameId}", forceLoad: true);
+    }
+
+    public class PlayTurnResult
+    {
+        public bool IsGameOver { get; set; }
+        public string? Winner { get; set; }
+    }
+}

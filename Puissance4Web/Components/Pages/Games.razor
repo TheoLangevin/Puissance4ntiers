@@ -1,0 +1,113 @@
+@page "/games"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="container mt-5">
+    <h3 class="text-center">Parties</h3>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h4 class="text-primary">En attente d'un invité</h4>
+            @if (GamesData == null)
+            {
+                <p>Aucune parties trouvées...</p>
+            }
+            else if (!GamesData.AwaitingGuest.Any())
+            {
+                <p>Aucune partie disponible.</p>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var game in GamesData.AwaitingGuest)
+                    {
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <h5 class="card-title">Partie ID: @game.Id</h5>
+                                    <p class="card-text">Hôte: @game.Host.Login</p>
+                                    <button class="btn btn-primary" @onclick="() => JoinGame(game.Id)">Rejoindre</button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="col-md-6">
+            <h4 class="text-success">En cours</h4>
+            @if (GamesData == null)
+            {
+                <p>Aucune parties trouvées...</p>
+            }
+            else if (!GamesData.InProgress.Any())
+            {
+                <p>Aucune partie disponible.</p>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var game in GamesData.InProgress)
+                    {
+                        <div class="col-12">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h5 class="card-title">Partie ID: @game.Id</h5>
+                                    <p class="card-text">Hôte: @game.Host.Login</p>
+                                    <p class="card-text">Invité: @(game.Guest?.Login ?? "Unknown")</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private GamesDto? GamesData;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            GamesData = await Http.GetFromJsonAsync<GamesDto>("api/Games/all");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading games: {ex.Message}");
+        }
+    }
+
+    private async Task JoinGame(int gameId)
+    {
+        try
+        {
+            var request = new { GameId = gameId };
+            var response = await Http.PostAsJsonAsync("api/Games/join", request);
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo($"/game/{gameId}");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                if (!string.IsNullOrEmpty(error))
+                {
+                    Console.WriteLine($"Error joining game: {error}");
+                }
+                else
+                {
+                    Console.WriteLine("Unknown error occurred while joining the game.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception: {ex.Message}");
+        }
+    }
+}

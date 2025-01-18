@@ -1,0 +1,68 @@
+@page "/create-game"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
+<div class="container mt-5">
+    <h1>Créer une Partie</h1>
+    <p class="lead">Créer une nouvelle partie en tant qu'hôte.</p>
+
+    <button class="btn btn-primary w-100" @onclick="HandleCreateGame">Créer la Partie</button>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger mt-3">
+            @ErrorMessage
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(SuccessMessage))
+    {
+        <div class="alert alert-success mt-3">
+            @SuccessMessage
+        </div>
+    }
+</div>
+
+@code {
+    private string ErrorMessage = string.Empty;
+    private string SuccessMessage = string.Empty;
+
+    private async Task HandleCreateGame()
+    {
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
+
+        try
+        {
+            // Récupérer le token JWT
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                ErrorMessage = "Vous n'êtes pas authentifié.";
+                return;
+            }
+
+            // Ajouter le token à l'en-tête Authorization
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            // Envoyer la requête pour créer une partie
+            var response = await Http.PostAsJsonAsync<object>("api/Games/create", null);
+            if (response.IsSuccessStatusCode)
+            {
+                // Lire uniquement l'ID de la partie dans la réponse
+                var gameId = await response.Content.ReadFromJsonAsync<int>(); // L'API doit retourner uniquement l'ID
+                SuccessMessage = "Partie créée avec succès !";
+                await Task.Delay(2000);
+                Navigation.NavigateTo($"/game/{gameId}");
+            }
+            else
+            {
+                ErrorMessage = $"Erreur : {await response.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Une erreur est survenue : {ex.Message}";
+        }
+    }
+}

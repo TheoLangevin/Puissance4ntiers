@@ -17,40 +17,38 @@ public class GamesController : ControllerBase
         _context = context;
     }
 
-    [HttpPost]
-    public IActionResult CreateGame([FromBody] int hostId)
+    [HttpPost("create")]
+    [Authorize]
+    public IActionResult CreateGame()
     {
-        var host = _context.Players.Find(hostId);
-        if (host == null) return BadRequest(new { Message = "Host not found." });
-
-        var existingGame = _context.Games.FirstOrDefault(g => g.HostId == hostId && g.Status == "InProgress");
-        if (existingGame != null)
+        var hostIdClaim = User.FindFirst("PlayerId")?.Value;
+        if (string.IsNullOrEmpty(hostIdClaim) || !int.TryParse(hostIdClaim, out int hostId) || hostId <= 0)
         {
-            return BadRequest(new { Message = "Host is already in another game." });
+            return Unauthorized(new { Message = "HostId invalide ou non trouvé dans le token." });
         }
 
+        var host = _context.Players.FirstOrDefault(p => p.Id == hostId);
+        if (host == null)
+        {
+            return NotFound(new { Message = "Host not found." });
+        }
+
+        // Création de la partie
         var game = new Game
         {
             Host = host,
-            Status = "AwaitingGuest",
-            Grid = new Grid
-            {
-                Cells = Enumerable.Range(0, 6 * 7).Select(i => new Cell
-                {
-                    Row = i / 7,
-                    Column = i % 7,
-                }).ToList()
-            }
+            Status = GameStatus.AwaitingGuest.ToString(),
+            Grid = new Grid()
         };
+        game.Grid.InitializeCells();
 
         _context.Games.Add(game);
         _context.SaveChanges();
 
-        return CreatedAtAction(nameof(GetGameById), new { id = game.Id }, game);
+        // Retourner uniquement l'ID de la partie
+        return Ok(game.Id);
     }
 
-    // Get a game by ID
-    [Authorize]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetGameById(int id)
     {
@@ -61,9 +59,62 @@ public class GamesController : ControllerBase
             .ThenInclude(grid => grid.Cells)
             .FirstOrDefaultAsync(g => g.Id == id);
 
-        if (game == null) return NotFound(new { Message = "Game not found." });
+        if (game == null)
+        {
+            return NotFound(new { Message = "Game not found." });
+        }
 
-        return Ok(game);
+        // Projeter un modèle simplifié
+        var gameDto = new
+        {
+            game.Id,
+            game.Status,
+            Host = new { game.Host.Id, game.Host.Login },
+            Guest = game.Guest == null ? null : new { game.Guest.Id, game.Guest.Login },
+            Grid = new
+            {
+                game.Grid.Rows,
+                game.Grid.Columns,
+                Cells = game.Grid.Cells.Select(c => new { c.Row, c.Column, c.Token?.Color })
+            }
+        };
+
+        return Ok(gameDto);
+    }
+
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllGames()
+    {
+        var awaitingGames = await _context.Games
+            .Where(g => g.Status == GameStatus.AwaitingGuest.ToString())
+            .Include(g => g.Host)
+            .ToListAsync();
+
+        var inProgressGames = await _context.Games
+            .Where(g => g.Status == GameStatus.InProgress.ToString())
+            .Include(g => g.Host)
+            .Include(g => g.Guest)
+            .ToListAsync();
+
+        // Projeter un modèle simplifié
+        var result = new
+        {
+            AwaitingGuest = awaitingGames.Select(game => new
+            {
+                game.Id,
+                game.Status,
+                Host = new { game.Host.Id, game.Host.Login }
+            }),
+            InProgress = inProgressGames.Select(game => new
+            {
+                game.Id,
+                game.Status,
+                Host = new { game.Host.Id, game.Host.Login },
+                Guest = game.Guest == null ? null : new { game.Guest.Id, game.Guest.Login }
+            })
+        };
+
+        return Ok(result);
     }
 
     // Get all games waiting for a guest
@@ -82,32 +133,66 @@ public class GamesController : ControllerBase
     [HttpPost("join")]
     public async Task<IActionResult> JoinGame([FromBody] JoinGameRequest request)
     {
-        var game = await _context.Games
-            .Include(g => g.Host)
-            .Include(g => g.Guest)
-            .FirstOrDefaultAsync(g => g.Id == request.GameId);
-
-        if (game == null) return NotFound(new { Message = "Game not found." });
-        if (game.Status != "AwaitingGuest") return BadRequest(new { Message = "Game is not open for joining." });
-
-        var guest = await _context.Players.FindAsync(request.GuestId);
-        if (guest == null) return BadRequest(new { Message = "Guest not found." });
-
-        // Vérifier si le joueur est déjà engagé dans une autre partie
-        var existingGame = _context.Games.FirstOrDefault(g =>
-            (g.HostId == guest.Id || g.GuestId == guest.Id) && g.Status == "InProgress");
-        if (existingGame != null)
+        try
         {
-            return BadRequest(new { Message = "Guest is already in another game." });
+            // Extraire l'ID du joueur (GuestId) depuis le JWT
+            var guestIdClaim = User.FindFirst("PlayerId")?.Value;
+
+            if (string.IsNullOrEmpty(guestIdClaim) || !int.TryParse(guestIdClaim, out int guestId) || guestId <= 0)
+            {
+                Console.WriteLine("Failed to extract PlayerId from JWT.");
+                return Unauthorized(new { Message = "Invalid guest ID." });
+            }
+
+            Console.WriteLine($"Extracted PlayerId from JWT: {guestId}");
+
+            var game = await _context.Games
+                .Include(g => g.Host)
+                .Include(g => g.Guest)
+                .FirstOrDefaultAsync(g => g.Id == request.GameId);
+
+            if (game == null)
+            {
+                Console.WriteLine($"Game with ID {request.GameId} not found.");
+                return NotFound(new { Message = "Game not found." });
+            }
+
+            if (game.Status != GameStatus.AwaitingGuest.ToString())
+            {
+                Console.WriteLine($"Game with ID {request.GameId} is not open for joining.");
+                return BadRequest(new { Message = "Game is not open for joining." });
+            }
+
+            var guest = await _context.Players.FindAsync(guestId);
+            if (guest == null)
+            {
+                Console.WriteLine($"Guest with ID {guestId} not found in database.");
+                return BadRequest(new { Message = "Guest not found." });
+            }
+
+            // Vérifier si le joueur est déjà engagé dans une autre partie
+            var existingGame = _context.Games.FirstOrDefault(g =>
+                (g.HostId == guest.Id || g.GuestId == guest.Id) && g.Status == GameStatus.InProgress.ToString());
+            if (existingGame != null)
+            {
+                Console.WriteLine($"Guest with ID {guestId} is already in another game.");
+                return BadRequest(new { Message = "Guest is already in another game." });
+            }
+
+            game.Guest = guest;
+            game.Status = "InProgress";
+
+            _context.Games.Update(game);
+            await _context.SaveChangesAsync();
+
+            Console.WriteLine($"Guest with ID {guestId} successfully joined game ID {game.Id}.");
+            return Ok(new { Message = "You have joined the game!", GameId = game.Id });
         }
-
-        game.Guest = guest;
-        game.Status = "InProgress";
-
-        _context.Games.Update(game);
-        await _context.SaveChangesAsync();
-
-        return Ok(game);
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception in JoinGame: {ex.Message}");
+            return StatusCode(500, new { Message = "An unexpected error occurred." });
+        }
     }
 
     private async Task<IActionResult> PlayTurn(Game game, Player player, int column)
@@ -203,6 +288,5 @@ public class GamesController : ControllerBase
     public class JoinGameRequest
     {
         public int GameId { get; set; }
-        public int GuestId { get; set; }
     }
 }

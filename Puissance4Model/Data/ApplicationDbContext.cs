@@ -14,6 +14,15 @@ public class ApplicationDbContext : DbContext
     public DbSet<Player> Players { get; set; }
     public DbSet<Game> Games { get; set; }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.EnableSensitiveDataLogging();
+        if (!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseSqlite("Data Source=puissance4.db"); // Valeur par défaut si non configurée
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -23,25 +32,22 @@ public class ApplicationDbContext : DbContext
         {
             entity.HasKey(g => g.Id);
 
-            entity.Property(g => g.Status)
-                  .IsRequired();
+            entity.Property(g => g.Status).IsRequired();
 
-            // Relation entre Game et Host
             entity.HasOne(g => g.Host)
-                  .WithMany(p => p.GamesAsHost) // Relation inverse
+                  .WithMany(p => p.GamesAsHost)
                   .HasForeignKey(g => g.HostId)
-                  .OnDelete(DeleteBehavior.Restrict); // Restriction pour éviter la suppression en cascade
+                  .OnDelete(DeleteBehavior.Restrict);
 
-            // Relation entre Game et Guest
             entity.HasOne(g => g.Guest)
-                  .WithMany(p => p.GamesAsGuest) // Relation inverse
+                  .WithMany(p => p.GamesAsGuest)
                   .HasForeignKey(g => g.GuestId)
                   .OnDelete(DeleteBehavior.Restrict);
 
-            // Relation avec Grid
             entity.HasOne(g => g.Grid)
                   .WithOne()
-                  .HasForeignKey<Game>(g => g.Id); // Suppose que Grid a un lien 1:1 avec Game
+                  .HasForeignKey<Grid>(g => g.GameId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configuration de Grid
@@ -54,10 +60,18 @@ public class ApplicationDbContext : DbContext
 
             entity.HasMany(gr => gr.Cells)
                   .WithOne()
-                  .HasForeignKey(c => c.Id); // Clé étrangère pour les cellules
+                  .HasForeignKey(c => c.GridId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Configuration des joueurs (Player)
+        // Configuration de Cell
+        modelBuilder.Entity<Cell>(entity =>
+        {
+            entity.HasKey(c => c.Id); // Clé primaire
+            entity.Property(c => c.Id).ValueGeneratedOnAdd(); // Génération automatique
+        });
+
+        // Configuration de Player
         modelBuilder.Entity<Player>(entity =>
         {
             entity.HasKey(p => p.Id);

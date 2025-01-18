@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Puissance4Model.Data;
 using Microsoft.EntityFrameworkCore;
+using Puissance4API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,8 +11,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Ajouter JwtTokenService pour gérer les tokens JWT
+builder.Services.AddSingleton<JwtTokenService>(sp => new JwtTokenService(
+    key: builder.Configuration["Jwt:Key"]
+));
+
 // Ajouter l'authentification JWT
-var key = Encoding.ASCII.GetBytes("MotDePasseVraimentCacher");
+var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -25,9 +31,17 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = false,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidateAudience = false
     };
 });
+
+// Configurer les options JSON pour gérer les cycles
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
 
 builder.Services.AddSwaggerGen();
 

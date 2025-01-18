@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Puissance4Model.Models
 {
@@ -13,13 +14,14 @@ namespace Puissance4Model.Models
         [Required]
         [MaxLength(100)]
         public string Password { get; set; }
-        
-        
+
+        [JsonIgnore]
         public ICollection<Game> GamesAsHost { get; set; }
 
+        [JsonIgnore]
         public ICollection<Game> GamesAsGuest { get; set; }
-    
-         public IEnumerable<Game> GetAllGames()
+
+        public IEnumerable<Game> GetAllGames()
         {
             return GamesAsHost.Concat(GamesAsGuest);
         }

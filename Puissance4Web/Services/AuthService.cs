@@ -1,23 +1,52 @@
-using System.Net.Http.Headers;
+using System.IdentityModel.Tokens.Jwt;
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components;
 
 public class AuthService
 {
-    private readonly HttpClient _httpClient;
+    private readonly ILocalStorageService _localStorage;
+    private readonly NavigationManager _navigation;
+    private bool _isInitialized = false;
 
-    public AuthService(HttpClient httpClient)
+    public AuthService(ILocalStorageService localStorage, NavigationManager navigation)
     {
-        _httpClient = httpClient;
+        _localStorage = localStorage;
+        _navigation = navigation;
     }
 
-    // Définir le token JWT dans l'en-tête Authorization
-    public void SetToken(string token)
+    public async Task<bool> IsTokenValid()
     {
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        if (!_isInitialized)
+        {
+            throw new InvalidOperationException("AuthService is not fully initialized. Wait until the component is rendered.");
+        }
+
+        var token = await _localStorage.GetItemAsync<string>("authToken");
+        if (string.IsNullOrEmpty(token))
+        {
+            return false;
+        }
+
+        var jwtHandler = new JwtSecurityTokenHandler();
+        var jwtToken = jwtHandler.ReadToken(token) as JwtSecurityToken;
+
+        if (jwtToken == null || jwtToken.ValidTo < DateTime.UtcNow)
+        {
+            await Logout();
+            return false;
+        }
+
+        return true;
     }
 
-    // Supprimer le token JWT de l'en-tête Authorization
-    public void ClearToken()
+    public async Task Logout()
     {
-        _httpClient.DefaultRequestHeaders.Authorization = null;
+        await _localStorage.RemoveItemAsync("authToken");
+        _navigation.NavigateTo("/login", forceLoad: true);
+    }
+
+    public void MarkAsInitialized()
+    {
+        _isInitialized = true;
     }
 }

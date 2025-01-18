@@ -1,6 +1,43 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+﻿@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<Router AppAssembly="@typeof(App).Assembly" OnNavigateAsync="HandleNavigation">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
     </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p>Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
 </Router>
+
+@code {
+    private bool IsInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            AuthService.MarkAsInitialized(); // Marquer le service comme prêt
+            IsInitialized = true;
+            StateHasChanged(); // Forcer le re-rendu
+        }
+    }
+
+    private async Task HandleNavigation(NavigationContext args)
+    {
+        // Vérifier si le service est prêt
+        if (!IsInitialized)
+        {
+            return;
+        }
+
+        // Vérifier si le token est valide
+        if (!await AuthService.IsTokenValid())
+        {
+            // Rediriger vers la page de login si le token est invalide ou expiré
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}
