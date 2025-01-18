@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@rendermode InteractiveServer
 
 <h3>Login</h3>
 
@@ -27,22 +28,48 @@
 @code {
     private PlayerDTO loginModel = new();
     private string ErrorMessage;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var token = await LocalStorage.GetItemAsync<string>("authToken");
+                if (!string.IsNullOrEmpty(token))
+                {
+                    Http.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    Navigation.NavigateTo("/console-demo"); // Rediriger si déjà connecté
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to retrieve token: {ex.Message}");
+            }
+        }
+    }
 
     private async Task HandleLogin()
     {
         try
         {
-            var response = await Http.PostAsJsonAsync("api/players/login", loginModel);
+            Console.WriteLine($"Sending login: {loginModel.Login}, password: {loginModel.Password}");
+            var response = await Http.PostAsJsonAsync("api/Players/login", loginModel);
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                // Sauvegarder le token dans le localStorage
                 await LocalStorage.SetItemAsync("authToken", result.Token);
-                Navigation.NavigateTo("/");
+                Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", result.Token);
+                Navigation.NavigateTo("/console-demo");
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                ErrorMessage = "Invalid login or password.";
             }
             else
             {
-                ErrorMessage = "Invalid login or password.";
+                ErrorMessage = $"Unexpected error: {response.StatusCode}, {response.ReasonPhrase}, {await response.Content.ReadAsStringAsync()}";
             }
         }
         catch (Exception ex)
