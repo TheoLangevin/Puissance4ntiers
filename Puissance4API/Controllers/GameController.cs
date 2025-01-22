@@ -41,11 +41,8 @@ public class GamesController : ControllerBase
             Grid = new Grid()
         };
         game.Grid.InitializeCells();
-
         _context.Games.Add(game);
         _context.SaveChanges();
-
-        // Retourner uniquement l'ID de la partie
         return Ok(game.Id);
     }
 
@@ -169,15 +166,22 @@ public class GamesController : ControllerBase
                 Console.WriteLine($"Guest with ID {guestId} not found in database.");
                 return BadRequest(new { Message = "Guest not found." });
             }
-
-            // Vérifier si le joueur est déjà engagé dans une autre partie
-            var existingGame = _context.Games.FirstOrDefault(g =>
-                (g.HostId == guest.Id || g.GuestId == guest.Id) && g.Status == GameStatus.InProgress.ToString());
-            if (existingGame != null)
+            
+            if (game.HostId == guest.Id)
             {
-                Console.WriteLine($"Guest with ID {guestId} is already in another game.");
-                return BadRequest(new { Message = "Guest is already in another game." });
+                return Ok(new { Message = "You rejoined the game!", GameId = game.Id });
             }
+
+             //Vérifier si le joueur est déjà engagé dans une autre partie
+            // var existingGame = _context.Games.FirstOrDefault(g =>
+            //     (g.HostId == guest.Id || g.GuestId == guest.Id) && g.Status == GameStatus.InProgress.ToString());
+            // if (existingGame != null)
+            // {
+            //     Console.WriteLine($"Guest with ID {guestId} is already in another game.");
+            //     return BadRequest(new { Message = "Guest is already in another game." });
+            // }
+            
+            
 
             game.Guest = guest;
             game.Status = "InProgress";
@@ -194,7 +198,7 @@ public class GamesController : ControllerBase
             return StatusCode(500, new { Message = "An unexpected error occurred." });
         }
     }
-
+    
     private async Task<IActionResult> PlayTurn(Game game, Player player, int column)
     {
         // Vérifier si c'est bien à ce joueur de jouer
@@ -271,6 +275,60 @@ public class GamesController : ControllerBase
             return BadRequest(new { Message = ex.Message });
         }
     }
+    
+    [HttpPost("{id}/play")]
+    [Authorize]
+    public async Task<IActionResult> PlayTurn(int id, [FromBody] PlayTurnRequest request)
+    {
+        var playerIdClaim = User.FindFirst("PlayerId")?.Value;
+        if (string.IsNullOrEmpty(playerIdClaim) || !int.TryParse(playerIdClaim, out int playerId))
+        {
+            return Unauthorized(new { Message = "Invalid player ID." });
+        }
+
+        var game = await _context.Games
+            .Include(g => g.Grid)
+            .ThenInclude(grid => grid.Cells).Include(game => game.Host).Include(game => game.Guest)
+            .FirstOrDefaultAsync(g => g.Id == id);
+
+        if (game == null)
+        {
+            return NotFound(new { Message = "Game not found." });
+        }
+
+
+        // Vérification de l'état et du joueur
+        if (game.Status != GameStatus.InProgress.ToString() ||
+            (game.Host.Id != playerId && game.Guest?.Id != playerId))
+        {
+            return BadRequest(new { Message = "Invalid turn." });
+        }
+
+        var token = game.Host.Id == playerId ? new Token { Color = "Red" } : new Token { Color = "Yellow" };
+        if (!game.Grid.DropToken(request.Column, token))
+        {
+            return BadRequest(new { Message = "Column is full." });
+        }
+
+        // Vérifier la victoire ou égalité
+        if (game.Grid.CheckWinCondition(token))
+        {
+            game.Status = $"{(game.Host.Id == playerId ? game.Host.Login : game.Guest.Login)} wins!";
+        }
+        else if (game.Grid.IsFull())
+        {
+            game.Status = "Draw";
+        }
+        else
+        {
+            // Passage de tour
+            game.Status = game.Status == "Host's Turn" ? "Guest's Turn" : "Host's Turn";
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { Message = "Turn played successfully." });
+    }
+
 
 
 
@@ -279,7 +337,6 @@ public class GamesController : ControllerBase
         public int GameId { get; set; }
         public int PlayerId { get; set; }
         public int Column { get; set; }
-        public string PlayerToken { get; set; }
     }
 
 
@@ -289,4 +346,5 @@ public class GamesController : ControllerBase
     {
         public int GameId { get; set; }
     }
+    
 }
