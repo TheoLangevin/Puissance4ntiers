@@ -35,7 +35,7 @@ public class Grid
     public bool DropToken(int column, Token token)
     {
         if (column < 0 || column >= Columns)
-            throw new ArgumentException("Colonne invalide.");
+            throw new ArgumentException("Colonne invalide." + column.ToString());
 
         // Trouver la première cellule vide dans la colonne (de bas en haut)
         var cell = Cells.Where(c => c.Column == column && c.Token == null)

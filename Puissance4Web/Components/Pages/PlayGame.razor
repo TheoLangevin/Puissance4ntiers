@@ -4,6 +4,8 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
 
 <style>
     .game-title {
@@ -176,7 +178,7 @@ else
         }
     }
 
-    private async Task PlayTurn(int column)
+        private async Task PlayTurn(int column)
     {
         if (gameinprogress == null || gameinprogress.Status != "InProgress")
         {
@@ -186,6 +188,10 @@ else
 
         try
         {
+            // Ajoutez le token dans le header Authorization
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
             var response = await Http.PostAsJsonAsync($"api/Games/{gameinprogress.Id}/play", new { Column = column });
             if (response.IsSuccessStatusCode)
             {
@@ -203,6 +209,7 @@ else
             await alert($"Impossible de jouer : {ex.Message}");
         }
     }
+
 
     private void LeaveGame()
     {
