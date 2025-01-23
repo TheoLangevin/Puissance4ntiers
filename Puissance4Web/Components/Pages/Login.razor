@@ -56,7 +56,6 @@
                 {
                     Http.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                    Navigation.NavigateTo("/"); // Rediriger si déjà connecté
                 }
             }
             catch (Exception ex)

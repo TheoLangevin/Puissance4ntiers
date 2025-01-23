@@ -1,3 +1,4 @@
+using Puissance4API.DTO;
 using System.ComponentModel.DataAnnotations;
 
 namespace Puissance4API.DTO

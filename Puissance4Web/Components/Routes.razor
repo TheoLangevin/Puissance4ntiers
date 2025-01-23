@@ -1,43 +1,20 @@
-﻿@inject AuthService AuthService
-@inject NavigationManager Navigation
-
-<Router AppAssembly="@typeof(App).Assembly" OnNavigateAsync="HandleNavigation">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p>Sorry, there's nothing at this address.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
-
-@code {
-    private bool IsInitialized = false;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            AuthService.MarkAsInitialized(); // Marquer le service comme prêt
-            IsInitialized = true;
-            StateHasChanged(); // Forcer le re-rendu
-        }
-    }
-
-    private async Task HandleNavigation(NavigationContext args)
-    {
-        // Vérifier si le service est prêt
-        if (!IsInitialized)
-        {
-            return;
-        }
-
-        // Vérifier si le token est valide
-        if (!await AuthService.IsTokenValid())
-        {
-            // Rediriger vers la page de login si le token est invalide ou expiré
-            Navigation.NavigateTo("/login", forceLoad: true);
-        }
-    }
-}
+﻿<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    <p>Vous n'êtes pas autorisé à accéder à cette page.</p>
+                    <a href="/login" class="btn btn-primary">Se connecter</a>
+                </NotAuthorized>
+                <Authorizing>
+                    <p>Vérification de l'autorisation...</p>
+                </Authorizing>
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p>Page introuvable.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

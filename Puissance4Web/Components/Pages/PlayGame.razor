@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
 <style>
     .game-title {
@@ -13,6 +14,7 @@
         text-align: center;
         margin-bottom: 1rem;
     }
+
     .game-container {
         max-width: 800px;
         margin: 0 auto;
@@ -22,15 +24,18 @@
         background-color: #f9f9f9;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
+
     .game-info {
         margin-bottom: 1.5rem;
         font-size: 1rem;
     }
+
     .column-buttons {
         display: flex;
         justify-content: space-between;
         margin-bottom: 1.5rem;
     }
+
     .column-button {
         padding: 0.5rem 1rem;
         font-size: 1rem;
@@ -41,13 +46,16 @@
         cursor: pointer;
         transition: background-color 0.3s;
     }
+
     .column-button:disabled {
         background-color: #ccc;
         cursor: not-allowed;
     }
+
     .column-button:hover:not(:disabled) {
         background-color: #0056b3;
     }
+
     .game-board {
         display: grid;
         grid-template-rows: repeat(6, 50px);
@@ -56,9 +64,11 @@
         justify-content: center;
         margin-bottom: 1.5rem;
     }
+
     .row {
         display: flex;
     }
+
     .cell {
         width: 50px;
         height: 50px;
@@ -69,15 +79,18 @@
         justify-content: center;
         border-radius: 5px;
     }
+
     .token {
         width: 40px;
         height: 40px;
         border-radius: 50%;
         display: inline-block;
     }
+
     .actions {
         text-align: center;
     }
+
     .leave-button {
         padding: 0.5rem 1.5rem;
         font-size: 1rem;
@@ -88,6 +101,7 @@
         cursor: pointer;
         transition: background-color 0.3s;
     }
+
     .leave-button:hover {
         background-color: #a71d2a;
     }
@@ -102,11 +116,11 @@
 else
 {
     <div class="game-container">
-        <!-- Informations sur le jeu -->
-        <div class="game-info">
-            <p><strong>Status :</strong> @gameinprogress.Status</p>
-            <p><strong>Hôte :</strong> @gameinprogress.Host.Login</p>
-            @if (gameinprogress.Guest != null)
+    <!-- Informations sur le jeu -->
+    <div class="game-info">
+        <p><strong>Status :</strong> @gameinprogress.Status</p>
+        <p><strong>Hôte :</strong> @gameinprogress.Host.Login</p>
+        @if (gameinprogress.Guest != null)
             {
                 <p><strong>Invité :</strong> @gameinprogress.Guest.Login</p>
             }
@@ -120,9 +134,8 @@ else
         <div class="column-buttons">
             @for (int col = 0; col < 7; col++)
             {
-                <button class="column-button"
-                        @onclick="() => PlayTurn(col)"
-                        disabled="@IsColumnDisabled(col)">
+                var currentCol = col;
+                <button class="column-button" @onclick="() => PlayTurn(currentCol)">
                     Colonne @col
                 </button>
             }
@@ -130,13 +143,13 @@ else
 
         <!-- Grille de jeu -->
         <div class="game-board">
-            @for (int row = 0; row < 6; row++)
+            @foreach (var row in Enumerable.Range(0, gameinprogress.Grid.Rows))
             {
-                @for (int col = 0; col < 7; col++)
+                @foreach (var col in Enumerable.Range(0, gameinprogress.Grid.Columns))
                 {
                     var cell = gameinprogress.Grid.Cells.FirstOrDefault(c => c.Row == row && c.Column == col);
                     <div class="cell">
-                        @if (cell?.Token != null)
+                        @if (cell?.Token?.Color != null)
                         {
                             <span class="token" style="background-color: @cell.Token.Color"></span>
                         }
@@ -186,15 +199,26 @@ else
 
         try
         {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (!string.IsNullOrEmpty(token))
+            {
+                Http.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
             var response = await Http.PostAsJsonAsync($"api/Games/{gameinprogress.Id}/play", new { Column = column });
+
+            Console.WriteLine($"PlayTurn response: {response.StatusCode}");
+
             if (response.IsSuccessStatusCode)
             {
                 gameinprogress = await Http.GetFromJsonAsync<InProgressGameDto>($"api/Games/{gameinprogress.Id}");
+                Console.WriteLine($"Game updated: {gameinprogress.Status}");
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(error);
+                Console.WriteLine($"Erreur : {error}");
                 await alert($"Erreur : {error}");
             }
         }
