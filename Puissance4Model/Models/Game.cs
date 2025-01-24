@@ -42,7 +42,7 @@ public class Game
             throw new UnauthorizedAccessException("Seuls l'hôte ou l'invité peuvent jouer dans cette partie.");
         }
 
-        Token playerToken = GetPlayerToken(player);
+        String playerToken = GetPlayerToken(player);
 
         if (!Grid.DropToken(column, playerToken))
         {
@@ -60,12 +60,12 @@ public class Game
     }
 
     // Obtient le jeton associé à un joueur
-    private Token GetPlayerToken(Player player)
+    private String GetPlayerToken(Player player)
     {
         if (player.Id == HostId)
-            return new Token { Color = "Red" }; // Exemple : l'hôte a un jeton rouge
+            return "Red"; // Exemple : l'hôte a un jeton rouge
         else if (player.Id == GuestId)
-            return new Token { Color = "Yellow" }; // Exemple : l'invité a un jeton jaune
+            return "Yellow"; // Exemple : l'invité a un jeton jaune
 
         throw new InvalidOperationException("Joueur non associé à cette partie.");
     }

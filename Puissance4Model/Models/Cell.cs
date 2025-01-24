@@ -5,7 +5,7 @@ public class Cell
     public int Id { get; set; }
     public int Row { get; set; }
     public int Column { get; set; }
-    public Token? Token { get; set; }
+    public String? Token { get; set; }
 
     // Nouvelle clé étrangère
     public int GridId { get; set; }

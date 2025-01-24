@@ -14,6 +14,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<Player> Players { get; set; }
     public DbSet<Game> Games { get; set; }
 
+    public DbSet<Grid> Grid { get; set; }
+
+    public DbSet<Cell> Cells { get; set; }
+
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.EnableSensitiveDataLogging();
@@ -64,11 +69,10 @@ public class ApplicationDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Configuration de Cell
         modelBuilder.Entity<Cell>(entity =>
         {
-            entity.HasKey(c => c.Id); // Clé primaire
-            entity.Property(c => c.Id).ValueGeneratedOnAdd(); // Génération automatique
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Id).ValueGeneratedOnAdd(); // Clé primaire générée automa
         });
 
         // Configuration de Player

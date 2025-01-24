@@ -71,14 +71,9 @@ public class GamesController : ControllerBase
             Guest = game.Guest == null ? null : new { game.Guest.Id, game.Guest.Login },
             Grid = new
             {
-                Rows = game.Grid.Rows,
-                Columns = game.Grid.Columns,
-                Cells = game.Grid.Cells.Select(cell => new
-                {
-                    cell.Row,
-                    cell.Column,
-                    TokenColor = cell.Token?.Color // Ajoutez cette ligne pour inclure la couleur du token
-                }).ToList()
+                game.Grid.Rows,
+                game.Grid.Columns,
+                Cells = game.Grid.Cells.Select(c => new { c.Row, c.Column, c.Token })
             }
         };
 
@@ -89,12 +84,12 @@ public class GamesController : ControllerBase
     public async Task<IActionResult> GetAllGames()
     {
         var awaitingGames = await _context.Games
-            .Where(g => g.Status == GameStatus.AwaitingGuest.ToString())
+            .Where(g => g.Status == "AwaitingGuest")
             .Include(g => g.Host)
             .ToListAsync();
 
         var inProgressGames = await _context.Games
-            .Where(g => g.Status == GameStatus.InProgress.ToString())
+            .Where(g => g.Status == "InProgress")
             .Include(g => g.Host)
             .Include(g => g.Guest)
             .ToListAsync();
@@ -160,7 +155,7 @@ public class GamesController : ControllerBase
                 return NotFound(new { Message = "Game not found." });
             }
 
-            if (game.Status != GameStatus.AwaitingGuest.ToString())
+            if (game.Status != "AwaitingGuest")
             {
                 Console.WriteLine($"Game with ID {request.GameId} is not open for joining.");
                 return BadRequest(new { Message = "Game is not open for joining." });
@@ -205,6 +200,7 @@ public class GamesController : ControllerBase
         }
     }
 
+
     [HttpPost("{id}/play")]
     [Authorize]
     public async Task<IActionResult> PlayTurn(int id, [FromBody] PlayTurnRequest request)
@@ -220,8 +216,8 @@ public class GamesController : ControllerBase
         var game = await _context.Games
             .Include(g => g.Grid)
             .ThenInclude(grid => grid.Cells)
-            .Include(g => g.Host)
-            .Include(g => g.Guest)
+            .Include(game => game.Host)
+            .Include(game => game.Guest)
             .FirstOrDefaultAsync(g => g.Id == id);
 
         if (game == null)
@@ -229,51 +225,41 @@ public class GamesController : ControllerBase
             return NotFound(new { Message = "Game not found." });
         }
 
-        // Validation de l'état et du joueur
-        if (game.Status != GameStatus.InProgress.ToString() ||
+
+        // Vérification de l'état et du joueur
+        if (game.Status == "Finished" || game.Status == "AwaitingGuest" ||
             (game.Host.Id != playerId && game.Guest?.Id != playerId))
         {
             return BadRequest(new { Message = "Invalid turn or unauthorized player." });
         }
 
-        // Déterminer le jeton à utiliser
-        var token = game.Host.Id == playerId ? new Token { Color = "Red" } : new Token { Color = "Yellow" };
+        var token = game.Host.Id == playerId ? "Red" : "Yellow";
 
-        try
+        if (!game.Grid.DropToken(request.Column, token))
         {
-            if (!game.Grid.DropToken(request.Column, token))
-            {
-                return BadRequest(new { Message = "Column is full." });
-            }
-
-            // Vérifier la condition de victoire ou d'égalité
-            if (game.Grid.CheckWinCondition(token))
-            {
-                game.Status = GameStatus.Finished.ToString();
-            }
-            else if (game.Grid.IsFull())
-            {
-                game.Status = GameStatus.Finished.ToString();
-            }
-
-            await _context.SaveChangesAsync();
-            return Ok(new { Message = "Turn played successfully.", GameId = game.Id, Status = game.Status });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { Message = $"An error occurred: {ex.Message}" });
-        }
-    }
-
-    private bool PlayTurnInternal(Game game, Token token, int column)
-    {
-        if (column < 0 || column >= game.Grid.Columns)
-        {
-            throw new ArgumentException("Invalid column number.");
+            return BadRequest(new { Message = "Column is full." });
         }
 
-        // Tenter de placer le token dans la colonne
-        return game.Grid.DropToken(column, token);
+        // Vérifier la victoire ou égalité
+        if (game.Grid.CheckWinCondition(token))
+        {
+            game.Status = "Finished";
+        }
+        else if (game.Grid.IsFull())
+        {
+            game.Status = "Finished";
+        }
+        else
+        {
+            // Passage de tour
+            game.Status = game.Status == "Host's Turn" ? "Guest's Turn" : "Host's Turn";
+        }
+
+        _context.Games.Update(game); // Met à jour la partie
+        var changes = await _context.SaveChangesAsync();
+        Console.WriteLine($"Number of changes saved to the database: {changes}");
+
+        return Ok(new { Message = "Turn played successfully." });
     }
 
 

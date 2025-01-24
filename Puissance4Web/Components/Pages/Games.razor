@@ -2,9 +2,7 @@
 @using System.Net.Http.Json
 @inject HttpClient Http
 @inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
 
 <div class="container mt-5">
@@ -61,6 +59,7 @@
                                     <h5 class="card-title">Partie ID: @game.Id</h5>
                                     <p class="card-text">Hôte: @game.Host.Login</p>
                                     <p class="card-text">Invité: @(game.Guest?.Login ?? "Unknown")</p>
+                                    <button class="btn btn-primary" @onclick="() => JoinGame(game.Id)">Rejoindre</button>
                                 </div>
                             </div>
                         </div>
@@ -73,6 +72,9 @@
 
 @code {
     private GamesDto? GamesData;
+
+    private string ErrorMessage = string.Empty;
+    private string SuccessMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,12 +90,27 @@
 
     private async Task JoinGame(int gameId)
     {
+        ErrorMessage = string.Empty;
+        SuccessMessage = string.Empty;
         try
         {
+            // Récupérer le token JWT
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                ErrorMessage = "Vous n'êtes pas authentifié.";
+                return;
+            }
+
+            // Ajouter le token à l'en-tête Authorization
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            // Envoyer la requête pour rejoindre une partie
             var request = new { GameId = gameId };
             var response = await Http.PostAsJsonAsync("api/Games/join", request);
             if (response.IsSuccessStatusCode)
             {
+                await Task.Delay(2000);
                 Navigation.NavigateTo($"/game/{gameId}");
             }
             else
