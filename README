@@ -8,18 +8,26 @@ Se plaer dans Puissance4Web puis faire >dotnet run
 
 Vous pouvez ensuite vous connecter sur https://localhost:7012.
 
+- Identifiants et mots de passe:
+  Vous pouvez créer vous mêmes vos identifiants à l'adresse : https://localhost:7012/register
+  Ensuite, vous pouvez vous connecter à l'adresse : https://localhost:7012/login
 
-- Identifiants et mots de passe test:
-Vous pouvez créer vous mêmes vos identifiants à l'adresse : https://localhost:7012/register
+- Fonctionnalités:
 
+  - Application sécurisée avec JWT
+  - Voir la liste des parties en attente de joueurs et les rejoindre et la liste des parties en cours
+  - Jouer une partie de Puissance 4
+
+- Comment jouer ?:
+
+  - Le joueur A créer la partie via https://localhost:7012/create-game
+  - Le joueur B rejoint la partie via https://localhost:7012/games
+  - Pour jouer, il suffit de cliquer sur une colonne pour placer un pion.
+  - Le joueur qui aligne 4 pions de sa couleur gagne la partie.
+  - Si la grille est pleine et qu'aucun joueur n'a aligné 4 pions, la partie est nulle.
 
 - Problèmes:
 
-Nous n'avons pas réussi à faire le rendu automatique, il faut donc rafraichir entre les coups des joueurs. A cause de cela les joueurs peuvent jouer tout le temps.
-
+Nous n'avons pas réussi à faire le rendu automatique, il faut donc rafraichir entre les coups des joueurs.
 
 - Diagramme de la logique métier : class-diagram.png
-
-
-
-
