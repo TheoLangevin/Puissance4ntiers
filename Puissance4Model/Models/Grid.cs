@@ -32,7 +32,7 @@ public class Grid
     }
 
     // Ajoute un jeton dans une colonne
-    public bool DropToken(int column, Token token)
+    public bool DropToken(int column, String token)
     {
         if (column < 0 || column >= Columns)
             throw new ArgumentException("Colonne invalide." + column.ToString());
@@ -58,13 +58,13 @@ public class Grid
     }
 
     // Vérifie si un joueur a gagné
-    public bool CheckWinCondition(Token token)
+    public bool CheckWinCondition(String token)
     {
         // Vérifie les alignements (horizontal, vertical, diagonal)
         return CheckHorizontal(token) || CheckVertical(token) || CheckDiagonals(token);
     }
 
-    private bool CheckHorizontal(Token token)
+    private bool CheckHorizontal(String token)
     {
         foreach (var row in Enumerable.Range(0, Rows))
         {
@@ -78,7 +78,7 @@ public class Grid
         return false;
     }
 
-    private bool CheckVertical(Token token)
+    private bool CheckVertical(String token)
     {
         foreach (var column in Enumerable.Range(0, Columns))
         {
@@ -92,7 +92,7 @@ public class Grid
         return false;
     }
 
-    private bool CheckDiagonals(Token token)
+    private bool CheckDiagonals(String token)
     {
         // Diagonales montantes
         foreach (var cell in Cells)
@@ -105,7 +105,7 @@ public class Grid
         return false;
     }
 
-    private bool CheckDirection(Cell startCell, Token token, int rowStep, int colStep)
+    private bool CheckDirection(Cell startCell, String token, int rowStep, int colStep)
     {
         int count = 0;
         int row = startCell.Row;
@@ -139,10 +139,34 @@ public class Grid
             for (int column = 0; column < Columns; column++)
             {
                 var cell = Cells.FirstOrDefault(c => c.Row == row && c.Column == column);
-                Console.Write(cell?.Token?.Color ?? ".");
+                Console.Write(cell?.Token ?? ".");
                 Console.Write(" ");
             }
             Console.WriteLine();
         }
     }
+
+    public override string ToString()
+{
+    var gridString = new System.Text.StringBuilder();
+
+    // Parcourt chaque rangée et colonne pour afficher les cellules
+    for (int row = 0; row < Rows; row++)
+    {
+        for (int column = 0; column < Columns; column++)
+        {
+            var cell = Cells.FirstOrDefault(c => c.Row == row && c.Column == column);
+            var token = cell?.Token;
+
+            // Affiche les coordonnées et le contenu de la cellule
+            gridString.Append($"({row},{column}): ");
+            gridString.Append(token ?? "Empty");
+            gridString.Append(" | ");
+        }
+        gridString.AppendLine(); // Nouvelle ligne à chaque rangée
+    }
+
+    return gridString.ToString();
+}
+
 }

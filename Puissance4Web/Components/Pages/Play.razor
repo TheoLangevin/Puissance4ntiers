@@ -27,7 +27,7 @@
                     @for (int col = 0; col < Game.Grid.Columns; col++)
                     {
                         var cell = Game.Grid.Cells.FirstOrDefault(c => c.Row == row && c.Column == col);
-                        var color = cell?.Token?.Color ?? "white";
+                        var color = cell?.Token ?? "white";
                         <div class="cell" style="background-color: @(color);" @onclick="() => DropToken(col)"></div>
                     }
                 </div>

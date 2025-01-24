@@ -1,6 +1,7 @@
 ﻿@page "/game/{GameId:int}"
 @using System.Net.Http.Json
 @using Puissance4API.DTO
+@using Microsoft.AspNetCore.SignalR
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
@@ -84,6 +85,8 @@
         padding: 0.5rem 1.5rem;
         font-size: 1rem;
         background-color: #dc3545;
+    using Blazored.LocalStorage.Exceptions;
+    using Microsoft.VisualBasic;
         color: #fff;
         border: none;
         border-radius: 5px;
@@ -120,15 +123,20 @@ else
 
         <!-- Boutons pour jouer -->
         <div class="column-buttons">
-            @for (int col = 0; col < 7; col++)
+            @for (int i = 0; i < 7; i++)
             {
+                var column = i;
                 <button class="column-button"
-                        @onclick="() => PlayTurn(col-1)"
-                        disabled="@IsColumnDisabled(col)">
-                    Colonne @col
+                        @onclick="() => PlayTurn(column)"
+                        disabled="@IsColumnDisabled(column)">
+                    Colonne @column
                 </button>
             }
+
+
         </div>
+
+         <!-- >  ----->
 
         <!-- Grille de jeu -->
         <div class="game-board">
@@ -140,7 +148,7 @@ else
             <div class="cell">
                 @if (cell?.Token != null)
                 {
-                <span class="token" style="background-color: @(cell.Token.Color)"></span>
+                <span class="token" style="background-color: @(cell.Token)"></span>
                 }
             </div>
             }
@@ -160,7 +168,6 @@ else
 @code {
     [Parameter] public int GameId { get; set; }
     public InProgressGameDto? gameinprogress;
-
     protected override async Task OnInitializedAsync()
     {
         try
@@ -181,7 +188,8 @@ else
 
     private async Task PlayTurn(int column)
     {
-        if (gameinprogress == null || gameinprogress.Status != "InProgress")
+        if (gameinprogress == null || gameinprogress.Status == "AwaitingGuest" ||
+        gameinprogress.Status == "Finished")
         {
             await alert("La partie n'est pas active !");
             return;
@@ -204,7 +212,7 @@ else
                 var lastMove = gameinprogress.Grid.Cells.FirstOrDefault(c => c.Column == column && c.Token != null);
                 if (lastMove != null)
                 {
-                    Console.WriteLine($"Jeton placé : Joueur {lastMove.Token.Color} en Colonne {column}, Ligne {lastMove.Row}");
+                    Console.WriteLine($"Jeton placé : Joueur {lastMove.Token} en Colonne {column}, Ligne {lastMove.Row}");
                 }
 
                 StateHasChanged();
@@ -231,7 +239,8 @@ else
 
     private bool IsColumnDisabled(int column)
     {
-        if (gameinprogress == null || gameinprogress.Status != "InProgress" || gameinprogress.Guest == null)
+        if (gameinprogress == null || gameinprogress.Status == "Finished" 
+        || gameinprogress.Status == "AwaitingGuest" || gameinprogress.Guest == null)
         {
             return true; // Désactiver les boutons si la partie n'est pas en cours ou qu'il n'y a pas d'invité.
         }

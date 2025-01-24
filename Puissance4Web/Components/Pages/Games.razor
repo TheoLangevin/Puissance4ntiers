@@ -104,7 +104,6 @@
 
             // Ajouter le token à l'en-tête Authorization
             Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
         
             // Envoyer la requête pour rejoindre une partie
               var request = new { GameId = gameId };
