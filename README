@@ -4,7 +4,7 @@ Dans un terminal:
 Se placer dans Puissance4API puis faire >dotnet run
 
 Dans un autre terminal:
-Se plaer dans Puissance4Web puis faire >dotnet run
+Se placer dans Puissance4Web puis faire >dotnet run
 
 Vous pouvez ensuite vous connecter sur https://localhost:7012.
 
@@ -14,7 +14,10 @@ Vous pouvez ensuite vous connecter sur https://localhost:7012.
 
 - Fonctionnalités:
 
-  - Application sécurisée avec JWT
+  - Architecture MVC & RESTful
+  -
+  - API sécurisée avec JWT
+  - Client sécurisée avec JWT
   - Voir la liste des parties en attente de joueurs et les rejoindre et la liste des parties en cours
   - Jouer une partie de Puissance 4
 
