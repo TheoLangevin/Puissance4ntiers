@@ -154,11 +154,11 @@ public class GamesController : ControllerBase
                 return NotFound(new { Message = "Game not found." });
             }
 
-            if (game.Status != GameStatus.AwaitingGuest.ToString())
-            {
-                Console.WriteLine($"Game with ID {request.GameId} is not open for joining.");
-                return BadRequest(new { Message = "Game is not open for joining." });
-            }
+            // if (game.Status != GameStatus.AwaitingGuest.ToString())
+            // {
+            //     Console.WriteLine($"Game with ID {request.GameId} is not open for joining.");
+            //     return BadRequest(new { Message = "Game is not open for joining." });
+            // }
 
             var guest = await _context.Players.FindAsync(guestId);
             if (guest == null)
@@ -268,6 +268,7 @@ public class GamesController : ControllerBase
         try
         {
             var result = await PlayTurn(game, player, request.Column);
+            Console.WriteLine($"Player {player.Login} played turn in game {game.Id}.");
             return result;
         }
         catch (Exception ex)
