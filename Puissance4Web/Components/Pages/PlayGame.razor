@@ -123,7 +123,7 @@ else
             @for (int col = 0; col < 7; col++)
             {
                 <button class="column-button"
-                        @onclick="() => PlayTurn(col)"
+                        @onclick="() => PlayTurn(col-1)"
                         disabled="@IsColumnDisabled(col)">
                     Colonne @col
                 </button>
@@ -134,18 +134,19 @@ else
         <div class="game-board">
             @for (int row = 0; row < 6; row++)
             {
-                @for (int col = 0; col < 7; col++)
+            @for (int col = 0; col < 7; col++)
+            {
+            var cell = gameinprogress.Grid.Cells.FirstOrDefault(c => c.Row == row && c.Column == col);
+            <div class="cell">
+                @if (cell?.Token != null)
                 {
-                    var cell = gameinprogress.Grid.Cells.FirstOrDefault(c => c.Row == row && c.Column == col);
-                    <div class="cell">
-                        @if (cell?.Token != null)
-                        {
-                            <span class="token" style="background-color: @cell.Token.Color"></span>
-                        }
-                    </div>
+                <span class="token" style="background-color: @(cell.Token.Color)"></span>
                 }
+            </div>
+            }
             }
         </div>
+
 
         <!-- Boutons d'actions -->
         <div class="actions">
@@ -178,7 +179,7 @@ else
         }
     }
 
-        private async Task PlayTurn(int column)
+    private async Task PlayTurn(int column)
     {
         if (gameinprogress == null || gameinprogress.Status != "InProgress")
         {
@@ -192,10 +193,21 @@ else
             var token = await LocalStorage.GetItemAsync<string>("authToken");
             Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
+            // Envoi du coup à l'API
             var response = await Http.PostAsJsonAsync($"api/Games/{gameinprogress.Id}/play", new { Column = column });
             if (response.IsSuccessStatusCode)
             {
+                // Rafraîchir les données du jeu
                 gameinprogress = await Http.GetFromJsonAsync<InProgressGameDto>($"api/Games/{gameinprogress.Id}");
+
+                // Log dans la console
+                var lastMove = gameinprogress.Grid.Cells.FirstOrDefault(c => c.Column == column && c.Token != null);
+                if (lastMove != null)
+                {
+                    Console.WriteLine($"Jeton placé : Joueur {lastMove.Token.Color} en Colonne {column}, Ligne {lastMove.Row}");
+                }
+
+                StateHasChanged();
             }
             else
             {
@@ -211,6 +223,7 @@ else
     }
 
 
+
     private void LeaveGame()
     {
         NavigationManager.NavigateTo("/games");
@@ -218,13 +231,14 @@ else
 
     private bool IsColumnDisabled(int column)
     {
-        if (gameinprogress.Status != "InProgress" || gameinprogress.Guest == null)
+        if (gameinprogress == null || gameinprogress.Status != "InProgress" || gameinprogress.Guest == null)
         {
-            return true;
+            return true; // Désactiver les boutons si la partie n'est pas en cours ou qu'il n'y a pas d'invité.
         }
 
         return GetAvailableRow(column) == -1; // Désactiver si la colonne est pleine.
     }
+
 
     private int GetAvailableRow(int column)
     {
@@ -233,12 +247,13 @@ else
             var cell = gameinprogress.Grid.Cells.FirstOrDefault(c => c.Row == row && c.Column == column);
             if (cell != null && cell.Token == null)
             {
-                return row;
+                return row; // Retourne l'index de la première ligne disponible.
             }
         }
 
-        return -1;
+        return -1; // Retourne -1 si la colonne est pleine.
     }
+
 
     private async Task alert(string message)
     {

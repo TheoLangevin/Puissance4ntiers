@@ -59,6 +59,7 @@
                                     <h5 class="card-title">Partie ID: @game.Id</h5>
                                     <p class="card-text">Hôte: @game.Host.Login</p>
                                     <p class="card-text">Invité: @(game.Guest?.Login ?? "Unknown")</p>
+                                    <button class="btn btn-primary" @onclick="() => JoinGame(game.Id)">Rejoindre</button>
                                 </div>
                             </div>
                         </div>
