@@ -1,4 +1,4 @@
-Pour lancer l'application:
+- Pour lancer l'application:
 
 Dans un terminal:
 Se placer dans Puissance4API puis faire >dotnet run
@@ -9,16 +9,16 @@ Se plaer dans Puissance4Web puis faire >dotnet run
 Vous pouvez ensuite vous connecter sur https://localhost:7012.
 
 
-Identifiants et mots de passe test:
+- Identifiants et mots de passe test:
+Vous pouvez créer vous mêmes vos identifiants à l'adresse : https://localhost:7012/register
 
 
-
-Problèmes:
+- Problèmes:
 
 Nous n'avons pas réussi à faire le rendu automatique, il faut donc rafraichir entre les coups des joueurs. A cause de cela les joueurs peuvent jouer tout le temps.
 
 
-Diagramme de la logique métier : class-diagram.png
+- Diagramme de la logique métier : class-diagram.png
 
 
 
