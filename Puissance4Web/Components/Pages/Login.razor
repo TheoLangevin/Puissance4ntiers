@@ -12,7 +12,7 @@
         <p class="lead">Connectez-vous pour accéder à votre compte et commencer à jouer.</p>
     </div>
 
-    <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+    <EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="loginForm">
         <div class="mb-3">
             <label for="login" class="form-label">Nom d'utilisateur</label>
             <InputText id="login" @bind-Value="loginModel.Login" class="form-control" placeholder="Entrez votre nom d'utilisateur" />

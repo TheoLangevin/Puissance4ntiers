@@ -11,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+//builder.Services.AddSignalR();
+
 // Ajouter JwtTokenService pour gérer les tokens JWT
 builder.Services.AddSingleton<JwtTokenService>(sp => new JwtTokenService(
     key: builder.Configuration["Jwt:Key"]

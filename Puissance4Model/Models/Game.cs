@@ -70,6 +70,7 @@ public class Game
         throw new InvalidOperationException("Joueur non associé à cette partie.");
     }
 
+
     // Redéfinition de ToString pour des logs ou affichages
     public override string ToString()
     {

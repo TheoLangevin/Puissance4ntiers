@@ -185,7 +185,7 @@ public class GamesController : ControllerBase
 
 
             game.Guest = guest;
-            game.Status = "InProgress";
+            game.Status = "Host's Turn";
 
             _context.Games.Update(game);
             await _context.SaveChangesAsync();
@@ -225,6 +225,12 @@ public class GamesController : ControllerBase
             return NotFound(new { Message = "Game not found." });
         }
 
+        // Vérifiez si c'est au joueur actuel de jouer
+        var isHostTurn = game.Status == "Host's Turn";
+        if ((isHostTurn && game.Host.Id != playerId) || (!isHostTurn && game.Guest?.Id != playerId))
+        {
+            return BadRequest(new { Message = "It's not your turn." });
+        }
 
         // Vérification de l'état et du joueur
         if (game.Status == "Finished" || game.Status == "AwaitingGuest" ||
@@ -240,20 +246,21 @@ public class GamesController : ControllerBase
             return BadRequest(new { Message = "Column is full." });
         }
 
-        // Vérifier la victoire ou égalité
+        // Vérifiez la victoire ou égalité
         if (game.Grid.CheckWinCondition(token))
         {
             game.Status = "Finished";
         }
         else if (game.Grid.IsFull())
         {
-            game.Status = "Finished";
+            game.Status = "Draw";
         }
         else
         {
-            // Passage de tour
-            game.Status = game.Status == "Host's Turn" ? "Guest's Turn" : "Host's Turn";
+            // Passage au tour suivant
+            game.Status = isHostTurn ? "Guest's Turn" : "Host's Turn";
         }
+
 
         _context.Games.Update(game); // Met à jour la partie
         var changes = await _context.SaveChangesAsync();

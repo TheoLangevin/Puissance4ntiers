@@ -10,7 +10,7 @@
         <p class="lead">Choisissez un mot de passe sécurisé pour protéger votre compte.</p>
     </div>
 
-    <EditForm Model="registerModel" OnValidSubmit="HandleRegister">
+    <EditForm Model="registerModel" OnValidSubmit="HandleRegister" FormName="registerForm">
         <div class="mb-3">
             <label for="login" class="form-label">Nom d'utilisateur</label>
             <InputText id="login" @bind-Value="registerModel.Login" class="form-control"
